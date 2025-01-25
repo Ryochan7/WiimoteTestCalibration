@@ -653,10 +653,10 @@ namespace WpfApp7.ViewModels
         {
             StringBuilder builder = new StringBuilder();
             //builder.AppendLine($"OG TL {origTopLeftCalibPoint.X} | {origTopLeftCalibPoint.Y}");
-            builder.AppendLine($"test_topLeftGunX: {string.Create(CultureInfo.InvariantCulture, $"{topLeftCalibPoint.X}")}");
-            builder.AppendLine($"test_topLeftGunY: {string.Create(CultureInfo.InvariantCulture, $"{topLeftCalibPoint.Y}")},");
-            builder.AppendLine($"test_centerGunX: {string.Create(CultureInfo.InvariantCulture, $"{centerCalibPoint.X}")},");
-            builder.AppendLine($"test_centerGunY: {string.Create(CultureInfo.InvariantCulture, $"{centerCalibPoint.Y}")},");
+            builder.AppendLine($"\"test_topLeftGunX\": {string.Create(CultureInfo.InvariantCulture, $"{topLeftCalibPoint.X}")},");
+            builder.AppendLine($"\"test_topLeftGunY\": {string.Create(CultureInfo.InvariantCulture, $"{topLeftCalibPoint.Y}")},");
+            builder.AppendLine($"\"test_centerGunX\": {string.Create(CultureInfo.InvariantCulture, $"{centerCalibPoint.X}")},");
+            builder.AppendLine($"\"test_centerGunY\": {string.Create(CultureInfo.InvariantCulture, $"{centerCalibPoint.Y}")},");
             CalibPointString = builder.ToString();
             //CalibPointStringChanged?.Invoke(this, EventArgs.Empty);
 
