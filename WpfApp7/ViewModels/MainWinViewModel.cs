@@ -32,7 +32,6 @@ namespace WpfApp7.ViewModels
             Done,
         }
 
-
         private CalibrationStep currentCalibStep = CalibrationStep.None;
 
         private int canvasWidth;
@@ -48,8 +47,6 @@ namespace WpfApp7.ViewModels
         public int GunImageLeft => gunImageLeft;
         public event EventHandler GunImageLeftChanged;
 
-
-
         private int gunImageBottom;
         public int GunImageBottom => gunImageBottom;
         public event EventHandler GunImageBottomChanged;
@@ -57,8 +54,6 @@ namespace WpfApp7.ViewModels
         private int gunImageRight;
         public int GunImageRight => gunImageRight;
         public event EventHandler GunImageRightChanged;
-
-
 
         private int gunCenterTop;
         public int GunCenterTop => gunCenterTop;
@@ -96,7 +91,6 @@ namespace WpfApp7.ViewModels
         public event EventHandler DisplayBottomRightGunImgChanged;
 
 
-
         private bool displayCenterGunImg;
         public bool DisplayCenterGunImg => displayCenterGunImg;
 
@@ -121,7 +115,6 @@ namespace WpfApp7.ViewModels
         private PointF topLeftCalibPoint = new PointF();
         private PointF bottomRightCalibPoint = new PointF();
         private PointF centerCalibPoint = new PointF();
-        private PointF origTopLeftCalibPoint = new PointF();
 
         private bool previousBState;
         private bool currentBState;
@@ -178,13 +171,6 @@ namespace WpfApp7.ViewModels
         }
         public event EventHandler WarningHelpTextChanged;
 
-        private double offsetTopLeftX;
-        private double offsetTopLeftY;
-
-        private double offsetBottomRightX;
-        private double offsetBottomRightY;
-
-
         private double topLeftXCoorAdj;
         public double TopLeftXCoorAdj
         {
@@ -216,11 +202,6 @@ namespace WpfApp7.ViewModels
         }
         public event EventHandler TopLeftYCoorAdjChanged;
 
-
-
-
-
-
         private double bottomRightXCoorAdj;
         public double BottomRightXCoorAdj
         {
@@ -251,10 +232,6 @@ namespace WpfApp7.ViewModels
             }
         }
         public event EventHandler BottomRightYCoorAdjChanged;
-
-
-
-
 
         private double centerXCoorAdj;
         public double CenterXCoorAdj
@@ -530,16 +507,8 @@ namespace WpfApp7.ViewModels
             gunImageBottom = (int)(canvasHeight - (GUN_IMG_HEIGHT / 2.0));
             gunImageRight = (int)(canvasWidth - (GUN_IMG_WIDTH / 2.0));
 
-
-
             gunCenterTop = (int)((canvasHeight - GUN_IMG_HEIGHT) / 2.0);
             gunCenterLeft = (int)((canvasWidth - GUN_IMG_WIDTH) / 2.0);
-
-            offsetTopLeftX = (GUN_IMG_WIDTH / 2.0) / canvasWidth;
-            offsetTopLeftY = (GUN_IMG_HEIGHT / 2.0) / canvasHeight;
-
-            offsetBottomRightX = (GUN_IMG_WIDTH / 2.0) / canvasWidth;
-            offsetBottomRightY = (GUN_IMG_HEIGHT / 2.0) / canvasHeight;
         }
 
         private void Wm_WiimoteChanged(object sender, WiimoteChangedEventArgs e)
