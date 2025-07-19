@@ -74,7 +74,7 @@ namespace WpfApp7
                 //DataContext = null;
                 //DataContext = winWM;
                 // Tell UI to update lightgun point position
-                winWM.UpdateLightGunPoint();
+                winWM?.UpdateLightGunPoint();
             });
         }
 

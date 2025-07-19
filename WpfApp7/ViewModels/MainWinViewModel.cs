@@ -8,12 +8,15 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using WiimoteLib;
+using WiiTUIO.Provider;
 using WpfScreenHelper;
 
 namespace WpfApp7.ViewModels
 {
     public class MainWinViewModel
     {
+        private const string APP_NAME_FOLDER = "WiimoteGunTester2";
+
         private WiimoteCollection mWC;
         public WiimoteCollection MWC => mWC;
 
@@ -25,6 +28,7 @@ namespace WpfApp7.ViewModels
             None,
             CenterScreen,
             TopLeft,
+            BottomRight,
             Done,
         }
 
@@ -43,6 +47,18 @@ namespace WpfApp7.ViewModels
         private int gunImageLeft;
         public int GunImageLeft => gunImageLeft;
         public event EventHandler GunImageLeftChanged;
+
+
+
+        private int gunImageBottom;
+        public int GunImageBottom => gunImageBottom;
+        public event EventHandler GunImageBottomChanged;
+
+        private int gunImageRight;
+        public int GunImageRight => gunImageRight;
+        public event EventHandler GunImageRightChanged;
+
+
 
         private int gunCenterTop;
         public int GunCenterTop => gunCenterTop;
@@ -64,6 +80,22 @@ namespace WpfApp7.ViewModels
             }
         }
         public event EventHandler DisplayTopLeftGunImgChanged;
+
+
+        private bool displayBottomRightGunImg;
+        public bool DisplayBottomRightGunImg
+        {
+            get => displayBottomRightGunImg;
+            private set
+            {
+                if (displayBottomRightGunImg == value) return;
+                displayBottomRightGunImg = value;
+                DisplayBottomRightGunImgChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+        public event EventHandler DisplayBottomRightGunImgChanged;
+
+
 
         private bool displayCenterGunImg;
         public bool DisplayCenterGunImg => displayCenterGunImg;
@@ -87,6 +119,7 @@ namespace WpfApp7.ViewModels
         public event EventHandler LightGunPointVisibleChanged;
 
         private PointF topLeftCalibPoint = new PointF();
+        private PointF bottomRightCalibPoint = new PointF();
         private PointF centerCalibPoint = new PointF();
         private PointF origTopLeftCalibPoint = new PointF();
 
@@ -148,6 +181,10 @@ namespace WpfApp7.ViewModels
         private double offsetTopLeftX;
         private double offsetTopLeftY;
 
+        private double offsetBottomRightX;
+        private double offsetBottomRightY;
+
+
         private double topLeftXCoorAdj;
         public double TopLeftXCoorAdj
         {
@@ -178,6 +215,46 @@ namespace WpfApp7.ViewModels
             }
         }
         public event EventHandler TopLeftYCoorAdjChanged;
+
+
+
+
+
+
+        private double bottomRightXCoorAdj;
+        public double BottomRightXCoorAdj
+        {
+            get => bottomRightXCoorAdj;
+            set
+            {
+                //double temp = Convert.ToDouble(value);
+                //if (bottomRightXCoorAdj == temp) return;
+                if (bottomRightXCoorAdj == value) return;
+                bottomRightXCoorAdj = value;
+                BottomRightXCoorAdjChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+        public event EventHandler BottomRightXCoorAdjChanged;
+
+        private double bottomRightYCoorAdj;
+        public double BottomRightYCoorAdj
+        {
+            get => bottomRightYCoorAdj;
+            set
+            {
+                //double temp = Convert.ToDouble(value);
+                //if (bottomRightYCoorAdj == temp) return;
+                //bottomRightYCoorAdj = temp;
+                if (bottomRightYCoorAdj == value) return;
+                bottomRightYCoorAdj = value;
+                BottomRightYCoorAdjChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+        public event EventHandler BottomRightYCoorAdjChanged;
+
+
+
+
 
         private double centerXCoorAdj;
         public double CenterXCoorAdj
@@ -222,6 +299,38 @@ namespace WpfApp7.ViewModels
 
         public event EventHandler WiimoteStatePreprocess;
 
+        private Warper pWarper;
+        private PointF[] finalPos = new PointF[4];
+        private uint[] see = new uint[4];
+        private PointF median;
+        private CursorPos lastPos = new CursorPos(0.0f, 0.0f, false);
+
+        private float xDistTop;
+        private float xDistBottom;
+        private float yDistLeft;
+        private float yDistRight;
+
+        float angleTop;
+        float angleBottom;
+        float angleLeft;
+        float angleRight;
+
+        private float[] angleOffset = new float[4];
+
+        double angle;
+        float ledsHeight;
+        float ledsWidth;
+
+        private float topOffset;
+        private float bottomOffset;
+        private float leftOffset;
+        private float rightOffset;
+
+        private CursorPos currentPoint;
+        private PointF outputPoint;
+        private float TLled = 0.0f;
+        private float TRled = 0.0f;
+
         private const int GUN_IMG_WIDTH = 72;
         private const int GUN_IMG_HEIGHT = 72;
         private const int IRSENSORS_LEN = 4;
@@ -232,6 +341,7 @@ namespace WpfApp7.ViewModels
         public MainWinViewModel()
         {
             mWC = new WiimoteCollection();
+            this.pWarper = new Warper();
             SetCanvasDimensions((int)WpfScreenHelper.SystemInformation.VirtualScreen.Width,
                 (int)WpfScreenHelper.SystemInformation.VirtualScreen.Height);
 
@@ -240,14 +350,36 @@ namespace WpfApp7.ViewModels
 
             TopLeftXCoorAdjChanged += MainWinViewModel_TopLeftXCoorAdjChanged;
             TopLeftYCoorAdjChanged += MainWinViewModel_TopLeftYCoorAdjChanged;
+            BottomRightXCoorAdjChanged += MainWinViewModel_BottomRightXCoorAdjChanged;
+            BottomRightYCoorAdjChanged += MainWinViewModel_BottomRightYCoorAdjChanged;
             CenterXCoorAdjChanged += MainWinViewModel_CenterXCoorAdjChanged;
             CenterYCoorAdjChanged += MainWinViewModel_CenterYCoorAdjChanged;
+        }
+
+        private void MainWinViewModel_BottomRightYCoorAdjChanged(object sender, EventArgs e)
+        {
+            if (currentCalibStep == CalibrationStep.Done)
+            {
+                bottomRightCalibPoint.Y = (float)bottomRightYCoorAdj;
+                gunMappingConfig.RemoteMapping.MappingPoints.BottomRightY = bottomRightYCoorAdj;
+                GenerateCalibPointOutput();
+            }
+        }
+
+        private void MainWinViewModel_BottomRightXCoorAdjChanged(object sender, EventArgs e)
+        {
+            if (currentCalibStep == CalibrationStep.Done)
+            {
+                bottomRightCalibPoint.X = (float)bottomRightXCoorAdj;
+                gunMappingConfig.RemoteMapping.MappingPoints.BottomRightX = bottomRightXCoorAdj;
+                GenerateCalibPointOutput();
+            }
         }
 
         private void DetectPreviousMapping()
         {
             string testPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "WiimoteGunTester", "mappings.json");
+                APP_NAME_FOLDER, "mappings.json");
 
             if (!Directory.Exists(Path.GetDirectoryName(testPath)))
             {
@@ -302,7 +434,7 @@ namespace WpfApp7.ViewModels
             }
 
             string testPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "WiimoteGunTester", "mappings.json");
+                APP_NAME_FOLDER, "mappings.json");
 
             JsonSerializerOptions options = new JsonSerializerOptions()
             {
@@ -327,6 +459,7 @@ namespace WpfApp7.ViewModels
                 centerCalibPoint.Y = (float)centerYCoorAdj;
                 gunMappingConfig.RemoteMapping.MappingPoints.CenterY = centerYCoorAdj;
                 GenerateCalibPointOutput();
+                FinalizeCalibrationData();
             }
         }
 
@@ -337,6 +470,7 @@ namespace WpfApp7.ViewModels
                 centerCalibPoint.X = (float)centerXCoorAdj;
                 gunMappingConfig.RemoteMapping.MappingPoints.CenterX = centerXCoorAdj;
                 GenerateCalibPointOutput();
+                FinalizeCalibrationData();
             }
         }
 
@@ -393,11 +527,19 @@ namespace WpfApp7.ViewModels
             gunImageTop = (int)(2 - (GUN_IMG_HEIGHT / 2.0));
             gunImageLeft = (int)(2 - (GUN_IMG_WIDTH / 2.0));
 
+            gunImageBottom = (int)(canvasHeight - (GUN_IMG_HEIGHT / 2.0));
+            gunImageRight = (int)(canvasWidth - (GUN_IMG_WIDTH / 2.0));
+
+
+
             gunCenterTop = (int)((canvasHeight - GUN_IMG_HEIGHT) / 2.0);
             gunCenterLeft = (int)((canvasWidth - GUN_IMG_WIDTH) / 2.0);
 
             offsetTopLeftX = (GUN_IMG_WIDTH / 2.0) / canvasWidth;
             offsetTopLeftY = (GUN_IMG_HEIGHT / 2.0) / canvasHeight;
+
+            offsetBottomRightX = (GUN_IMG_WIDTH / 2.0) / canvasWidth;
+            offsetBottomRightY = (GUN_IMG_HEIGHT / 2.0) / canvasHeight;
         }
 
         private void Wm_WiimoteChanged(object sender, WiimoteChangedEventArgs e)
@@ -406,10 +548,18 @@ namespace WpfApp7.ViewModels
 
             WiimoteStatePreprocess?.Invoke(this, EventArgs.Empty);
 
-            stateData.MidPointX = 1.0 - ws.IRState.Midpoint.X;
-            stateData.MidPointY = ws.IRState.Midpoint.Y;
+            //stateData.MidPointX = 1.0 - ws.IRState.Midpoint.X;
+            //stateData.MidPointY = ws.IRState.Midpoint.Y;
 
-            MidPointString = $"{stateData.MidPointX} {stateData.MidPointY}";
+            //MidPointString = $"{stateData.MidPointX} {stateData.MidPointY}";
+
+            currentPoint = CalculateCurrentPoint(ws);
+            outputPoint = GetTransformPosition(currentPoint);
+
+            stateData.MidPointX = currentPoint.medianX;
+            stateData.MidPointY = currentPoint.medianY;
+
+            MidPointString = $"{currentPoint.medianX} {currentPoint.medianY}";
 
             //Trace.WriteLine($"{stateData.MidPointX} {stateData.MidPointY}");
 
@@ -423,35 +573,27 @@ namespace WpfApp7.ViewModels
             {
                 if (previousBState && !currentBState)
                 {
-                    bool found = false;
-                    for (int i = 0; i < IRSENSORS_LEN && !found; i++)
-                    {
-                        if (ws.IRState.IRSensors[i].Found)
-                        {
-                            for (int j = i + 1; j < IRSENSORS_LEN && !found; j++)
-                            {
-                                if (ws.IRState.IRSensors[j].Found)
-                                {
-                                    found = true;
-                                }
-                            }
-                        }
-                    }
-
+                    bool found = !currentPoint.OutOfReach && currentPoint.fourPointsFound;
                     if (found)
                     {
                         NextCalibrationStep();
                     }
                     else
                     {
-                        WarningHelpText = "Failed to find a midpoint. Please try again";
+                        WarningHelpText = "Failed to find a median point. Please try again";
                     }
                 }
             }
             else if (currentCalibStep == CalibrationStep.Done)
             {
-                double tempX = ((1.0 - ws.IRState.Midpoint.X) - topLeftCalibPoint.X) / ((centerCalibPoint.X - topLeftCalibPoint.X) * 2.0);
-                double tempY = (ws.IRState.Midpoint.Y - topLeftCalibPoint.Y) / ((centerCalibPoint.Y - topLeftCalibPoint.Y) * 2.0);
+                outputPoint = GetTransformPosition(currentPoint);
+
+                double tempX = (outputPoint.X - topLeftCalibPoint.X) /
+                    (bottomRightCalibPoint.X - topLeftCalibPoint.X);
+
+                double tempY = (outputPoint.Y - topLeftCalibPoint.Y) /
+                    (bottomRightCalibPoint.Y - topLeftCalibPoint.Y);
+
                 lightGunPointX = (int)(canvasWidth * Math.Clamp(tempX, 0.0, 1.0));
                 lightGunPointY = (int)(canvasHeight * Math.Clamp(tempY, 0.0, 1.0));
                 //lightGunPointX = (int)ws.IRState.Midpoint.X;
@@ -464,6 +606,220 @@ namespace WpfApp7.ViewModels
 
             StateDataChanged?.Invoke(this, EventArgs.Empty);
             previousBState = currentBState;
+        }
+
+        private PointF GetTransformPosition(CursorPos cursor)
+        {
+            PointF tempPoint = new PointF();
+
+            pWarper.setSource(finalPos[0].X, finalPos[0].Y,
+                finalPos[1].X, finalPos[1].Y, finalPos[2].X, finalPos[2].Y,
+                finalPos[3].X, finalPos[3].Y);
+            float dsx = 0.0f, dsy = 0.0f;
+            pWarper.warp((float)centerXCoorAdj, (float)centerYCoorAdj, ref dsx, ref dsy);
+            tempPoint.X = dsx;
+            tempPoint.Y = dsy;
+
+            return tempPoint;
+        }
+
+        private void FinalizeCalibrationData()
+        {
+            pWarper.setDestination(TRled, 1.0f, TLled, 1.0f, TLled, 0.0f, TRled, 0.0f);
+        }
+
+        private CursorPos CalculateCurrentPoint(WiimoteState wiimoteState)
+        {
+            CursorPos resultPos = new CursorPos(0.0f, 0.0f, false);
+            //PointF tempPoint = new PointF();
+
+            IRState irState = wiimoteState.IRState;
+            byte seenFlags = 0;
+            double Roll = Math.Atan2(wiimoteState.AccelState.Values.X, wiimoteState.AccelState.Values.Z);
+
+            bool fourPtsFound = irState.IRSensors[0].Found == true &&
+                irState.IRSensors[1].Found == true &&
+                irState.IRSensors[2].Found == true && irState.IRSensors[3].Found == true;
+
+            if (fourPtsFound)
+            {
+                median.Y = (irState.IRSensors[0].Position.Y + irState.IRSensors[1].Position.Y + irState.IRSensors[2].Position.Y + irState.IRSensors[3].Position.Y + 0.002f) / 4;
+                median.X = (irState.IRSensors[0].Position.X + irState.IRSensors[1].Position.X + irState.IRSensors[2].Position.X + irState.IRSensors[3].Position.X + 0.002f) / 4;
+            }
+
+            for (int i = 0; i < 4; i++)
+            {
+                if (irState.IRSensors[i].Found)
+                {
+                    double point_angle = Math.Atan2(irState.IRSensors[i].Position.Y - median.Y, irState.IRSensors[i].Position.X - median.X) - Roll;
+                    if (point_angle < 0) point_angle += 2 * Math.PI;
+
+                    int index = (int)(point_angle / (Math.PI / 2));
+
+                    finalPos[index] = irState.IRSensors[i].Position;
+                    see[index] = (see[index] << 1) | 1;
+                    seenFlags |= (byte)(1 << index);
+                }
+                else
+                    see[i] = 0;
+            }
+
+            // Perform check early. Make sure at least 3 real IR points were detected.
+            if (see.Count(seen => seen == 0) >= 2)
+            {
+                CursorPos err = lastPos;
+                //CursorPos err = new CursorPos(0.0f, 0.0f, true);
+                //err.medianX = 0.0f;
+                //err.medianY = 0.0f;
+                err.OutOfReach = true;
+                err.fourPointsFound = false;
+                //err.OffScreen = true;
+
+                return err;
+            }
+
+            while ((seenFlags & 15) != 0 && (seenFlags & 15) != 15)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    if ((seenFlags & (1 << i)) == 0)
+                    {
+                        see[i] = 0;
+                        int[] neighbors;
+                        switch (i)
+                        {
+                            case 0:
+                                neighbors = new[] { 3, 1 };
+                                break;
+                            case 1:
+                                neighbors = new[] { 2, 0 };
+                                break;
+                            case 2:
+                                neighbors = new[] { 1, 3 };
+                                break;
+                            case 3:
+                                neighbors = new[] { 0, 2 };
+                                break;
+                            default:
+                                neighbors = Array.Empty<int>();
+                                break;
+                        }
+
+                        foreach (int neighbor in neighbors)
+                        {
+                            float f = 0;
+                            if ((seenFlags & (1 << neighbor)) != 0) // Check if the bit for the neighbor is set
+                            {
+                                switch (i)
+                                {
+                                    case 0:
+                                        f = angleBottom - angleOffset[neighbor];
+                                        break;
+                                    case 1:
+                                        f = angleBottom + (angleOffset[neighbor] - MathF.PI);
+                                        break;
+                                    case 2:
+                                        f = angleTop + angleOffset[neighbor];
+                                        break;
+                                    case 3:
+                                        f = angleTop - (angleOffset[neighbor] - MathF.PI);
+                                        break;
+                                }
+                            }
+
+                            float distance = 0;
+                            switch (i)
+                            {
+                                case 0:
+                                    distance = (neighbor == 3) ? yDistRight : xDistBottom;
+                                    break;
+                                case 1:
+                                    distance = (neighbor == 2) ? yDistLeft : xDistBottom;
+                                    break;
+                                case 2:
+                                    distance = (neighbor == 1) ? yDistLeft : xDistTop;
+                                    break;
+                                case 3:
+                                    distance = (neighbor == 0) ? yDistRight : xDistTop;
+                                    break;
+                            }
+
+                            finalPos[i].X = finalPos[neighbor].X + distance * MathF.Cos(f);
+                            finalPos[i].Y = finalPos[neighbor].Y + distance * -MathF.Sin(f);
+                            seenFlags |= (byte)(1 << i);
+                            break;
+                        }
+                    }
+                }
+                if ((seenFlags & 15) == 15) break;
+            }
+
+            if (!fourPtsFound)
+            {
+                median.Y = (finalPos[0].Y + finalPos[1].Y + finalPos[2].Y + finalPos[3].Y + 0.002f) / 4;
+                median.X = (finalPos[0].X + finalPos[1].X + finalPos[2].X + finalPos[3].X + 0.002f) / 4;
+            }
+
+            // If 4 LEDS can be seen and loop has run through 5 times update offsets and height
+            if (((1 << 5) & see[0] & see[1] & see[2] & see[3]) != 0)
+            {
+                angleOffset[0] = angleTop - (angleLeft - MathF.PI);
+                angleOffset[1] = -(angleTop - angleRight);
+                angleOffset[2] = -(angleBottom - angleLeft);
+                angleOffset[3] = angleBottom - (angleRight - MathF.PI);
+                ledsHeight = (yDistLeft + yDistRight) / 2.0f;
+                ledsWidth = (xDistTop + xDistBottom) / 2.0f;
+            }
+
+            // If 2 LEDS can be seen and loop has run through 5 times update angle and distances
+            if (((1 << 5) & see[2] & see[1]) != 0)
+            {
+                angleLeft = MathF.Atan2(finalPos[1].Y - finalPos[2].Y, finalPos[2].X - finalPos[1].X);
+                yDistLeft = MathF.Hypot((finalPos[2].Y - finalPos[1].Y), (finalPos[2].X - finalPos[1].X));
+            }
+
+            if (((1 << 5) & see[0] & see[3]) != 0)
+            {
+                angleRight = MathF.Atan2(finalPos[0].Y - finalPos[3].Y, finalPos[3].X - finalPos[0].X);
+                yDistRight = MathF.Hypot((finalPos[0].Y - finalPos[3].Y), (finalPos[0].X - finalPos[3].X));
+            }
+
+            if (((1 << 5) & see[2] & see[3]) != 0)
+            {
+                angleTop = MathF.Atan2(finalPos[2].Y - finalPos[3].Y, finalPos[3].X - finalPos[2].X);
+                xDistTop = MathF.Hypot((finalPos[2].Y - finalPos[3].Y), (finalPos[2].X - finalPos[3].X));
+            }
+
+            if (((1 << 5) & see[0] & see[1]) != 0)
+            {
+                angleBottom = MathF.Atan2(finalPos[1].Y - finalPos[0].Y, finalPos[0].X - finalPos[1].X);
+                xDistBottom = MathF.Hypot((finalPos[1].Y - finalPos[0].Y), (finalPos[1].X - finalPos[0].X));
+            }
+
+            // Add tilt correction
+            //angle = -(MathF.Atan2(finalPos[0].Y - finalPos[1].Y, finalPos[1].X - finalPos[0].X) + MathF.Atan2(finalPos[2].Y - finalPos[3].Y, finalPos[3].X - finalPos[2].X)) / 2;
+            //if (angle < 0) angle += MathF.PI * 2;
+            angle = Roll;
+            //Trace.WriteLine($"ANGLE: {angle} | ROLL {Roll}");
+
+            /*if (see.Count(seen => seen == 0) >= 2 || Double.IsNaN(median.X) ||
+                Double.IsNaN(median.Y))
+            {
+                CursorPos err = lastPos;
+                err.OutOfReach = true;
+                err.fourPointsFound = false;
+
+                return err;
+            }
+            */
+
+            resultPos.OutOfReach = false;
+            resultPos.fourPointsFound = fourPtsFound;
+            resultPos.medianX = median.X;
+            resultPos.medianY = median.Y;
+            lastPos = resultPos;
+
+            return resultPos;
         }
 
         public void UpdateLightGunPoint()
@@ -500,28 +856,32 @@ namespace WpfApp7.ViewModels
                     SetupCenterScreen();
                     break;
                 case CalibrationStep.CenterScreen:
-                    centerCalibPoint.X = (float)stateData.MidPointX;
-                    centerCalibPoint.Y = (float)stateData.MidPointY;
+                    double sin = Math.Sin(angle * -1);
+                    double cos = Math.Cos(angle * -1);
+
+                    float tempX = currentPoint.medianX - 0.5f;
+                    float tempY = currentPoint.medianY - 0.5f;
+
+                    float xnew = (float)(tempX * cos - tempY * sin);
+                    float ynew = (float)(tempX * sin + tempY * cos);
+
+                    tempX = xnew + 0.5f;
+                    tempY = ynew + 0.5f;
+                    centerCalibPoint.X = (float)(tempX);
+                    centerCalibPoint.Y = (float)tempY;
                     centerXCoorAdj = centerCalibPoint.X;
                     centerYCoorAdj = centerCalibPoint.Y;
 
+                    TLled = (float)(0.5 - ((ledsWidth / ledsHeight) / 4.0f));
+                    TRled = (float)(0.5 + ((ledsWidth / ledsHeight) / 4.0f));
+
                     currentCalibStep = CalibrationStep.TopLeft;
                     SetupTopLeftScreen();
+                    FinalizeCalibrationData();
                     break;
                 case CalibrationStep.TopLeft:
-                    //double distanceX = (centerCalibPoint.X - stateData.MidPointX) * 2.0;
-                    //double distanceY = (centerCalibPoint.Y - stateData.MidPointY) * 2.0;
-
-                    //double diffX = distanceX * offsetTopLeftX;
-                    //double diffY = distanceY * offsetTopLeftY;
-
-                    //origTopLeftCalibPoint = new PointF();
-                    //origTopLeftCalibPoint.X = (float)stateData.MidPointX;
-                    //origTopLeftCalibPoint.Y = (float)stateData.MidPointY;
-                    //Trace.WriteLine($"{origTopLeftCalibPoint.X} | {origTopLeftCalibPoint.Y}");
-
-                    topLeftCalibPoint.X = (float)stateData.MidPointX;
-                    topLeftCalibPoint.Y = (float)stateData.MidPointY;
+                    topLeftCalibPoint.X = (float)(outputPoint.X);
+                    topLeftCalibPoint.Y = (float)outputPoint.Y;
                     topLeftXCoorAdj = topLeftCalibPoint.X;
                     topLeftYCoorAdj = topLeftCalibPoint.Y;
                     //topLeftCalibPoint.X = (float)Math.Clamp(stateData.MidPointX - diffX,
@@ -529,6 +889,16 @@ namespace WpfApp7.ViewModels
                     //topLeftCalibPoint.Y = (float)Math.Clamp(stateData.MidPointY - diffY,
                     //    0.0, 1.0);
 
+                    currentCalibStep = CalibrationStep.BottomRight;
+                    SetupBottomRightScreen();
+                    //currentCalibStep = CalibrationStep.Done;
+                    //SetupDone();
+                    break;
+                case CalibrationStep.BottomRight:
+                    bottomRightCalibPoint.X = (float)(outputPoint.X);
+                    bottomRightCalibPoint.Y = (float)outputPoint.Y;
+                    bottomRightXCoorAdj = bottomRightCalibPoint.X;
+                    bottomRightYCoorAdj = bottomRightCalibPoint.Y;
                     currentCalibStep = CalibrationStep.Done;
                     SetupDone();
                     break;
@@ -544,15 +914,19 @@ namespace WpfApp7.ViewModels
         {
             displayTopLeftGunImg = false;
             displayCenterGunImg = false;
+            displayBottomRightGunImg = false;
             lightGunPointVisible = false;
             topLeftCalibPoint = new PointF();
+            bottomRightCalibPoint = new PointF();
             centerCalibPoint = new PointF();
+            TLled = TRled = 0.0f;
             CalibPointString = string.Empty;
             CurrentStepHelpText = string.Empty;
             WarningHelpText = string.Empty;
             DisplayDoneVis = false;
 
             DisplayTopLeftGunImgChanged?.Invoke(this, EventArgs.Empty);
+            DisplayBottomRightGunImgChanged?.Invoke(this, EventArgs.Empty);
             DisplayCenterGunImgChanged?.Invoke(this, EventArgs.Empty);
             LightGunPointVisibleChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -560,14 +934,17 @@ namespace WpfApp7.ViewModels
         private void SetupCenterScreen()
         {
             displayTopLeftGunImg = false;
+            displayBottomRightGunImg = false;
             displayCenterGunImg = true;
             topLeftCalibPoint = new PointF();
+            bottomRightCalibPoint = new PointF();
             centerCalibPoint = new PointF();
             CurrentStepHelpText = "Aim for center point and press B";
             WarningHelpText = string.Empty;
             DisplayDoneVis = false;
 
             DisplayTopLeftGunImgChanged?.Invoke(this, EventArgs.Empty);
+            DisplayBottomRightGunImgChanged?.Invoke(this, EventArgs.Empty);
             DisplayCenterGunImgChanged?.Invoke(this, EventArgs.Empty);
         }
 
@@ -575,10 +952,25 @@ namespace WpfApp7.ViewModels
         {
             displayTopLeftGunImg = true;
             displayCenterGunImg = false;
+            displayBottomRightGunImg = false;
             CurrentStepHelpText = "Aim for top left point and press B";
             WarningHelpText = string.Empty;
 
             DisplayTopLeftGunImgChanged?.Invoke(this, EventArgs.Empty);
+            DisplayBottomRightGunImgChanged?.Invoke(this, EventArgs.Empty);
+            DisplayCenterGunImgChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void SetupBottomRightScreen()
+        {
+            displayTopLeftGunImg = false;
+            displayCenterGunImg = false;
+            displayBottomRightGunImg = true;
+            CurrentStepHelpText = "Aim for top left point and press B";
+            WarningHelpText = string.Empty;
+
+            DisplayTopLeftGunImgChanged?.Invoke(this, EventArgs.Empty);
+            DisplayBottomRightGunImgChanged?.Invoke(this, EventArgs.Empty);
             DisplayCenterGunImgChanged?.Invoke(this, EventArgs.Empty);
         }
 
@@ -592,17 +984,29 @@ namespace WpfApp7.ViewModels
             topLeftYCoorAdj = gunMappingConfig.RemoteMapping.MappingPoints.TopLeftY;
             topLeftCalibPoint.Y = (float)gunMappingConfig.RemoteMapping.MappingPoints.TopLeftY;
 
+
+            bottomRightXCoorAdj = gunMappingConfig.RemoteMapping.MappingPoints.BottomRightX;
+            bottomRightCalibPoint.X = (float)gunMappingConfig.RemoteMapping.MappingPoints.BottomRightX;
+
+            bottomRightYCoorAdj = gunMappingConfig.RemoteMapping.MappingPoints.BottomRightY;
+            bottomRightCalibPoint.Y = (float)gunMappingConfig.RemoteMapping.MappingPoints.BottomRightY;
+
+
             centerXCoorAdj = gunMappingConfig.RemoteMapping.MappingPoints.CenterX;
             centerCalibPoint.X = (float)gunMappingConfig.RemoteMapping.MappingPoints.CenterX;
 
 
             centerYCoorAdj = gunMappingConfig.RemoteMapping.MappingPoints.CenterY;
             centerCalibPoint.Y = (float)gunMappingConfig.RemoteMapping.MappingPoints.CenterY;
+
+            TLled = (float)gunMappingConfig.RemoteMapping.MappingPoints.TLled;
+            TRled = (float)gunMappingConfig.RemoteMapping.MappingPoints.TRled;
         }
 
         private void SetupDone()
         {
             displayTopLeftGunImg = true;
+            displayBottomRightGunImg = true;
             displayCenterGunImg = true;
             lightGunPointVisible = true;
             CurrentStepHelpText = string.Empty;
@@ -610,14 +1014,18 @@ namespace WpfApp7.ViewModels
             DisplayDoneVis = true;
 
             DisplayTopLeftGunImgChanged?.Invoke(this, EventArgs.Empty);
+            DisplayBottomRightGunImgChanged?.Invoke(this, EventArgs.Empty);
             DisplayCenterGunImgChanged?.Invoke(this, EventArgs.Empty);
             LightGunPointVisibleChanged?.Invoke(this, EventArgs.Empty);
             TopLeftXCoorAdjChanged?.Invoke(this, EventArgs.Empty);
             TopLeftYCoorAdjChanged?.Invoke(this, EventArgs.Empty);
+            BottomRightXCoorAdjChanged?.Invoke(this, EventArgs.Empty);
+            BottomRightYCoorAdjChanged?.Invoke(this, EventArgs.Empty);
             CenterXCoorAdjChanged?.Invoke(this, EventArgs.Empty);
             CenterYCoorAdjChanged?.Invoke(this, EventArgs.Empty);
 
             GenerateCalibPointOutput();
+            FinalizeCalibrationData();
             SaveCalibPointConfigInfo();
         }
 
@@ -630,6 +1038,8 @@ namespace WpfApp7.ViewModels
                 {
                     TopLeftX = topLeftXCoorAdj,
                     TopLeftY = topLeftYCoorAdj,
+                    BottomRightX = bottomRightXCoorAdj,
+                    BottomRightY = bottomRightYCoorAdj,
                     CenterX = centerXCoorAdj,
                     CenterY = centerYCoorAdj,
                 };
@@ -644,6 +1054,8 @@ namespace WpfApp7.ViewModels
 
                 mapPoints.TopLeftX = topLeftXCoorAdj;
                 mapPoints.TopLeftY = topLeftYCoorAdj;
+                mapPoints.BottomRightX = bottomRightXCoorAdj;
+                mapPoints.BottomRightY = bottomRightYCoorAdj;
                 mapPoints.CenterX = centerXCoorAdj;
                 mapPoints.CenterY = centerYCoorAdj;
             }
@@ -653,23 +1065,33 @@ namespace WpfApp7.ViewModels
         {
             StringBuilder builder = new StringBuilder();
             //builder.AppendLine($"OG TL {origTopLeftCalibPoint.X} | {origTopLeftCalibPoint.Y}");
-            builder.AppendLine($"\"test_topLeftGunX\": {string.Create(CultureInfo.InvariantCulture, $"{topLeftCalibPoint.X}")},");
-            builder.AppendLine($"\"test_topLeftGunY\": {string.Create(CultureInfo.InvariantCulture, $"{topLeftCalibPoint.Y}")},");
             builder.AppendLine($"\"test_centerGunX\": {string.Create(CultureInfo.InvariantCulture, $"{centerCalibPoint.X}")},");
             builder.AppendLine($"\"test_centerGunY\": {string.Create(CultureInfo.InvariantCulture, $"{centerCalibPoint.Y}")},");
+
+            builder.AppendLine($"\"test_topLeftGunX\": {string.Create(CultureInfo.InvariantCulture, $"{topLeftCalibPoint.X}")},");
+            builder.AppendLine($"\"test_topLeftGunY\": {string.Create(CultureInfo.InvariantCulture, $"{topLeftCalibPoint.Y}")},");
+
+            builder.AppendLine($"\"test_bottomRightGunX\": {string.Create(CultureInfo.InvariantCulture, $"{bottomRightCalibPoint.X}")},");
+            builder.AppendLine($"\"test_bottomRightGunY\": {string.Create(CultureInfo.InvariantCulture, $"{bottomRightCalibPoint.Y}")},");
+
+            builder.AppendLine($"\"test_TLled\": {string.Create(CultureInfo.InvariantCulture, $"{TLled}")},");
+            builder.AppendLine($"\"test_TRled\": {string.Create(CultureInfo.InvariantCulture, $"{TRled}")},");
             CalibPointString = builder.ToString();
             //CalibPointStringChanged?.Invoke(this, EventArgs.Empty);
 
             // Debug cmd output
             //Trace.WriteLine($"OG TL {origTopLeftCalibPoint.X} | {origTopLeftCalibPoint.Y}");
-            Trace.WriteLine($"test_topLeftGun {string.Create(CultureInfo.InvariantCulture, $"{topLeftCalibPoint.X}")} {string.Create(CultureInfo.InvariantCulture, $"{topLeftCalibPoint.Y}")}");
             Trace.WriteLine($"test_centerGunX {string.Create(CultureInfo.InvariantCulture, $"{centerCalibPoint.X}")} {string.Create(CultureInfo.InvariantCulture, $"{centerCalibPoint.Y}")}");
+            Trace.WriteLine($"test_topLeftGun {string.Create(CultureInfo.InvariantCulture, $"{topLeftCalibPoint.X}")} {string.Create(CultureInfo.InvariantCulture, $"{topLeftCalibPoint.Y}")}");
+            Trace.WriteLine($"test_bottomRightGun {string.Create(CultureInfo.InvariantCulture, $"{bottomRightCalibPoint.X}")} {string.Create(CultureInfo.InvariantCulture, $"{bottomRightCalibPoint.Y}")}");
+            Trace.WriteLine($"test_TLled {string.Create(CultureInfo.InvariantCulture, $"{TLled}")}");
+            Trace.WriteLine($"test_TRled {string.Create(CultureInfo.InvariantCulture, $"{TRled}")}");
             Trace.WriteLine("");
         }
 
         public void TearDown()
         {
-            SaveMappingConfig();
+            //SaveMappingConfig();
             StateDataChanged = null;
 
             foreach (Wiimote wm in mWC)
@@ -712,6 +1134,8 @@ namespace WpfApp7.ViewModels
             set => lightGunY = value;
         }
     }
+
+
 
     public class WiiGunMappingConfig
     {
@@ -756,6 +1180,22 @@ namespace WpfApp7.ViewModels
             set => topLeftY = value;
         }
 
+
+        private double bottomRightX;
+        public double BottomRightX
+        {
+            get => bottomRightX;
+            set => bottomRightX = value;
+        }
+
+        private double bottomRightY;
+        public double BottomRightY
+        {
+            get => bottomRightY;
+            set => bottomRightY = value;
+        }
+
+
         private double centerX;
         public double CenterX
         {
@@ -769,5 +1209,32 @@ namespace WpfApp7.ViewModels
             get => centerY;
             set => centerY = value;
         }
+
+        private double tlLed;
+        public double TLled
+        {
+            get => tlLed;
+            set => tlLed = value;
+        }
+
+        private double trLed;
+        public double TRled
+        {
+            get => trLed;
+            set => trLed = value;
+        }
+    }
+
+    public static class MathF
+    {
+        public const float PI = (float)Math.PI;
+        public static float Atan2(float y, float x) => (float)Math.Atan2(y, x);
+        public static float Cos(float d) => (float)Math.Cos(d);
+        public static float Round(float a) => (float)Math.Round(a);
+        public static float Sin(float a) => (float)Math.Sin(a);
+        public static float Hypot(float p, float b) => (float)Math.Sqrt(Math.Pow(p, 2) + Math.Pow(b, 2));
+        public static float Sqrt(float d) => (float)Math.Sqrt(d);
+        public static float Max(float val1, float val2) => (float)Math.Max(val1, val2);
+        public static float Min(float val1, float val2) => (float)Math.Min(val1, val2);
     }
 }
