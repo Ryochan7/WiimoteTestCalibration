@@ -594,7 +594,7 @@ namespace WpfApp7.ViewModels
 
         private void FinalizeCalibrationData()
         {
-            pWarper.setDestination(TRled, 1.0f, TLled, 1.0f, TLled, 0.0f, TRled, 0.0f);
+            pWarper.setDestination(TRled, 0.0f, TLled, 0.0f, TLled, 1.0f, TRled, 1.0f);
         }
 
         private CursorPos CalculateCurrentPoint(WiimoteState wiimoteState)
