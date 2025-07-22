@@ -1034,27 +1034,32 @@ namespace WpfApp7.ViewModels
         {
             StringBuilder builder = new StringBuilder();
             //builder.AppendLine($"OG TL {origTopLeftCalibPoint.X} | {origTopLeftCalibPoint.Y}");
-            builder.AppendLine($"\"test_centerGunX\": {string.Create(CultureInfo.InvariantCulture, $"{centerCalibPoint.X}")},");
-            builder.AppendLine($"\"test_centerGunY\": {string.Create(CultureInfo.InvariantCulture, $"{centerCalibPoint.Y}")},");
+            builder.AppendLine($"\"Top\": {string.Create(CultureInfo.InvariantCulture, $"{topLeftCalibPoint.Y}")},");
+            builder.AppendLine($"\"Bottom\": {string.Create(CultureInfo.InvariantCulture, $"{bottomRightCalibPoint.Y}")},");
 
-            builder.AppendLine($"\"test_topLeftGunX\": {string.Create(CultureInfo.InvariantCulture, $"{topLeftCalibPoint.X}")},");
-            builder.AppendLine($"\"test_topLeftGunY\": {string.Create(CultureInfo.InvariantCulture, $"{topLeftCalibPoint.Y}")},");
+            builder.AppendLine($"\"Left\": {string.Create(CultureInfo.InvariantCulture, $"{topLeftCalibPoint.X}")},");
+            builder.AppendLine($"\"Right\": {string.Create(CultureInfo.InvariantCulture, $"{bottomRightCalibPoint.X}")},");
 
-            builder.AppendLine($"\"test_bottomRightGunX\": {string.Create(CultureInfo.InvariantCulture, $"{bottomRightCalibPoint.X}")},");
-            builder.AppendLine($"\"test_bottomRightGunY\": {string.Create(CultureInfo.InvariantCulture, $"{bottomRightCalibPoint.Y}")},");
+            builder.AppendLine($"\"CenterX\": {string.Create(CultureInfo.InvariantCulture, $"{centerCalibPoint.X}")},");
+            builder.AppendLine($"\"CenterY\": {string.Create(CultureInfo.InvariantCulture, $"{centerCalibPoint.Y}")},");
 
-            builder.AppendLine($"\"test_TLled\": {string.Create(CultureInfo.InvariantCulture, $"{TLled}")},");
-            builder.AppendLine($"\"test_TRled\": {string.Create(CultureInfo.InvariantCulture, $"{TRled}")},");
+            builder.AppendLine($"\"TLled\": {string.Create(CultureInfo.InvariantCulture, $"{TLled}")},");
+            builder.AppendLine($"\"TRled\": {string.Create(CultureInfo.InvariantCulture, $"{TRled}")},");
             CalibPointString = builder.ToString();
             //CalibPointStringChanged?.Invoke(this, EventArgs.Empty);
 
             // Debug cmd output
             //Trace.WriteLine($"OG TL {origTopLeftCalibPoint.X} | {origTopLeftCalibPoint.Y}");
-            Trace.WriteLine($"test_centerGunX {string.Create(CultureInfo.InvariantCulture, $"{centerCalibPoint.X}")} {string.Create(CultureInfo.InvariantCulture, $"{centerCalibPoint.Y}")}");
-            Trace.WriteLine($"test_topLeftGun {string.Create(CultureInfo.InvariantCulture, $"{topLeftCalibPoint.X}")} {string.Create(CultureInfo.InvariantCulture, $"{topLeftCalibPoint.Y}")}");
-            Trace.WriteLine($"test_bottomRightGun {string.Create(CultureInfo.InvariantCulture, $"{bottomRightCalibPoint.X}")} {string.Create(CultureInfo.InvariantCulture, $"{bottomRightCalibPoint.Y}")}");
-            Trace.WriteLine($"test_TLled {string.Create(CultureInfo.InvariantCulture, $"{TLled}")}");
-            Trace.WriteLine($"test_TRled {string.Create(CultureInfo.InvariantCulture, $"{TRled}")}");
+            Trace.WriteLine($"Top {string.Create(CultureInfo.InvariantCulture, $"{topLeftCalibPoint.X}")} {string.Create(CultureInfo.InvariantCulture, $"{topLeftCalibPoint.Y}")}");
+            Trace.WriteLine($"Bottom {string.Create(CultureInfo.InvariantCulture, $"{bottomRightCalibPoint.Y}")} {string.Create(CultureInfo.InvariantCulture, $"{bottomRightCalibPoint.Y}")}");
+            Trace.WriteLine($"Left {string.Create(CultureInfo.InvariantCulture, $"{topLeftCalibPoint.X}")} {string.Create(CultureInfo.InvariantCulture, $"{topLeftCalibPoint.X}")}");
+            Trace.WriteLine($"Right {string.Create(CultureInfo.InvariantCulture, $"{bottomRightCalibPoint.X}")} {string.Create(CultureInfo.InvariantCulture, $"{bottomRightCalibPoint.X}")}");
+            
+            Trace.WriteLine($"CenterX {string.Create(CultureInfo.InvariantCulture, $"{centerCalibPoint.X}")} {string.Create(CultureInfo.InvariantCulture, $"{centerCalibPoint.X}")}");
+            Trace.WriteLine($"CenterY {string.Create(CultureInfo.InvariantCulture, $"{centerCalibPoint.Y}")} {string.Create(CultureInfo.InvariantCulture, $"{centerCalibPoint.Y}")}");
+
+            Trace.WriteLine($"TLled {string.Create(CultureInfo.InvariantCulture, $"{TLled}")}");
+            Trace.WriteLine($"TRled {string.Create(CultureInfo.InvariantCulture, $"{TRled}")}");
             Trace.WriteLine("");
         }
 
