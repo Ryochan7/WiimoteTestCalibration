@@ -16,7 +16,7 @@ namespace WpfApp7.ViewModels
 {
     public class MainWinViewModel
     {
-        private const string APP_NAME_FOLDER = "WiimoteGunTester2";
+        private const string APP_NAME_FOLDER = "WiimoteGunTester";
 
         private WiimoteCollection mWC;
         public WiimoteCollection MWC => mWC;
