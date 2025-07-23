@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using WiimoteLib;
 using WiiTUIO.Provider;
@@ -1044,7 +1045,7 @@ namespace WpfApp7.ViewModels
             builder.AppendLine($"\"CenterY\": {string.Create(CultureInfo.InvariantCulture, $"{centerCalibPoint.Y}")},");
 
             builder.AppendLine($"\"TLled\": {string.Create(CultureInfo.InvariantCulture, $"{TLled}")},");
-            builder.AppendLine($"\"TRled\": {string.Create(CultureInfo.InvariantCulture, $"{TRled}")},");
+            builder.AppendLine($"\"TRled\": {string.Create(CultureInfo.InvariantCulture, $"{TRled}")}");
             CalibPointString = builder.ToString();
             //CalibPointStringChanged?.Invoke(this, EventArgs.Empty);
 
@@ -1140,35 +1141,37 @@ namespace WpfApp7.ViewModels
 
     public class MappingPoints
     {
-        private double topLeftX;
-        public double TopLeftX
-        {
-            get => topLeftX;
-            set => topLeftX = value;
-        }
-
         private double topLeftY;
+        [JsonPropertyName("Top")]
         public double TopLeftY
         {
             get => topLeftY;
             set => topLeftY = value;
         }
 
-
-        private double bottomRightX;
-        public double BottomRightX
-        {
-            get => bottomRightX;
-            set => bottomRightX = value;
-        }
-
         private double bottomRightY;
+        [JsonPropertyName("Bottom")]
         public double BottomRightY
         {
             get => bottomRightY;
             set => bottomRightY = value;
         }
 
+        private double topLeftX;
+        [JsonPropertyName("Left")]
+        public double TopLeftX
+        {
+            get => topLeftX;
+            set => topLeftX = value;
+        }
+
+        private double bottomRightX;
+        [JsonPropertyName("Right")]
+        public double BottomRightX
+        {
+            get => bottomRightX;
+            set => bottomRightX = value;
+        }
 
         private double centerX;
         public double CenterX
