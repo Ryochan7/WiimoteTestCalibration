@@ -936,7 +936,7 @@ namespace WpfApp7.ViewModels
             displayTopLeftGunImg = false;
             displayCenterGunImg = false;
             displayBottomRightGunImg = true;
-            CurrentStepHelpText = "Aim for top left point and press B";
+            CurrentStepHelpText = "Aim for bottom right point and press B";
             WarningHelpText = string.Empty;
 
             DisplayTopLeftGunImgChanged?.Invoke(this, EventArgs.Empty);
