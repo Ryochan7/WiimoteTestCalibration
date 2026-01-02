@@ -1012,6 +1012,8 @@ namespace WpfApp7.ViewModels
                     BottomRightY = bottomRightYCoorAdj,
                     CenterX = centerXCoorAdj,
                     CenterY = centerYCoorAdj,
+                    TLled = TLled,
+                    TRled = TRled,
                 };
             }
         }
@@ -1028,6 +1030,8 @@ namespace WpfApp7.ViewModels
                 mapPoints.BottomRightY = bottomRightYCoorAdj;
                 mapPoints.CenterX = centerXCoorAdj;
                 mapPoints.CenterY = centerYCoorAdj;
+                mapPoints.TLled = TLled;
+                mapPoints.TRled = TRled;
             }
         }
 
@@ -1066,7 +1070,7 @@ namespace WpfApp7.ViewModels
 
         public void TearDown()
         {
-            //SaveMappingConfig();
+            SaveMappingConfig();
             StateDataChanged = null;
 
             foreach (Wiimote wm in mWC)
